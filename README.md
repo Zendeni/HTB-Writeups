@@ -1,5 +1,3 @@
----
-
 ````markdown
 # OnlyHacks – Stored XSS → Chat Room Enumeration
 
