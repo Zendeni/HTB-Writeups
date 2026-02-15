@@ -1,11 +1,13 @@
 # HTB – Optimum
----
+
 ## Overview
----
+
 Optimum is a classic Hack The Box Windows machine vulnerable to **Rejetto HTTP File Server (HFS) 2.3**.  
 The machine allows unauthenticated remote code execution via an input handling flaw in the HFS search functionality.  
 Initial access is gained as a low-privileged user, followed by local privilege escalation to `NT AUTHORITY\SYSTEM`.
+
 ---
+
 ## Initial Enumeration
 
 A full TCP port scan reveals a single exposed service:
@@ -13,7 +15,9 @@ A full TCP port scan reveals a single exposed service:
 - **TCP/80** – Rejetto HTTP File Server 2.3
 
 The HFS version is known to be vulnerable to macro injection leading to command execution.
+
 ---
+
 ## Initial Access – HFS Macro RCE
 
 The vulnerability allows execution of server-side commands via crafted `search` parameters using HFS macro syntax.
@@ -46,18 +50,13 @@ Key observations:
 
 ## Privilege Escalation
 
-Privilege escalation is achieved using a **Windows token/handle impersonation vulnerability** affecting older Windows versions.
+Privilege escalation is achieved using a **Windows token / handle impersonation vulnerability** affecting older Windows versions.
 
 At a high level, the escalation works by:
 
-- Abusing the way Windows handles privileged thread/process tokens
+- Abusing the way Windows handles privileged thread and process tokens
 - Leaking or duplicating a SYSTEM-level token during specific logon or process creation operations
 - Spawning a new process that inherits the SYSTEM token
 
 This results in execution as:
 
-```
-
-NT AUTHORITY\SYSTEM
-
-```
