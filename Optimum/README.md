@@ -1,7 +1,7 @@
 # HTB – Optimum
 ---
 ## Overview
-
+---
 Optimum is a classic Hack The Box Windows machine vulnerable to **Rejetto HTTP File Server (HFS) 2.3**.  
 The machine allows unauthenticated remote code execution via an input handling flaw in the HFS search functionality.  
 Initial access is gained as a low-privileged user, followed by local privilege escalation to `NT AUTHORITY\SYSTEM`.
