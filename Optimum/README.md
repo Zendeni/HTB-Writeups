@@ -58,5 +58,8 @@ At a high level, the escalation works by:
 - Leaking or duplicating a SYSTEM-level token during specific logon or process creation operations
 - Spawning a new process that inherits the SYSTEM token
 
-This results in execution as:
+
+https://www.exploit-db.com/exploits/39161
+
+https://www.exploit-db.com/exploits/39719
 
