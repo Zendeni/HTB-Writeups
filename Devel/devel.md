@@ -1,15 +1,11 @@
 # HTB - Devel
 
-## Machine Information
-
 - Name: Devel
 - Difficulty: Easy
 - Operating System: Windows
 
----
 
 # Enumeration
-
 ## Nmap Scan
 
 ```bash
