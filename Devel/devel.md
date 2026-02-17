@@ -1,9 +1,9 @@
-# 📄 devel.md (Final Clean Version)
+# devel.md (Final Clean Version)
 
 ````markdown
 # HTB - Devel
 
-## 📌 Machine Information
+## Machine Information
 
 - Name: Devel
 - Difficulty: Easy
@@ -11,7 +11,7 @@
 
 ---
 
-# 🔎 Enumeration
+# Enumeration
 
 ## Nmap Scan
 
@@ -35,9 +35,9 @@ This indicates a strong possibility of uploading and executing an ASPX web shell
 
 ---
 
-# 🚪 Initial Access
+# Initial Access
 
-## 1️⃣ Anonymous FTP Access
+## Anonymous FTP Access
 
 Connect:
 
@@ -59,7 +59,7 @@ put cmd.aspx
 
 ---
 
-## 2️⃣ ASPX Command Shell
+##  ASPX Command Shell
 
 Simple ASPX command execution shell:
 
@@ -101,7 +101,7 @@ iis apppool\web
 
 ---
 
-# 🐚 Gaining Meterpreter Access
+# Gaining Meterpreter Access
 
 Generate payload:
 
@@ -145,7 +145,7 @@ Meterpreter session successfully opened.
 
 ---
 
-# ⬆️ Privilege Escalation
+# Privilege Escalation
 
 ## System Enumeration
 
@@ -200,8 +200,6 @@ NT AUTHORITY\SYSTEM
 
 ---
 
-# 🏁 Post Exploitation
-
 User flag:
 
 ```
@@ -216,7 +214,7 @@ C:\Users\Administrator\Desktop\root.txt.txt
 
 ---
 
-# 🔐 Attack Chain Summary
+# Attack Chain Summary
 
 1. Anonymous FTP write access
 2. ASPX command shell upload
