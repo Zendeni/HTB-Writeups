@@ -1,6 +1,6 @@
 # OnlyHacks – Stored XSS → Chat Room Enumeration
 
-## 🧩 Challenge Overview
+## Challenge Overview
 
 The application is a dating-style web platform featuring:
 - User registration
@@ -11,7 +11,7 @@ During testing, a **Stored Cross-Site Scripting (XSS)** vulnerability was discov
 
 ---
 
-## 🔎 Vulnerability Discovery
+## Vulnerability Discovery
 
 A test message containing:
 
@@ -29,7 +29,7 @@ This confirmed:
 
 ---
 
-## 🧠 Application Logic Analysis
+## Application Logic Analysis
 
 Chat rooms are referenced via:
 
@@ -71,7 +71,7 @@ for(let i=1;i<20;i++){
 
 ---
 
-## 🏁 Result
+## Result
 
 A hidden chat room accessible to a privileged user contained the flag:
 
