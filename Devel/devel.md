@@ -1,6 +1,3 @@
-# devel.md (Final Clean Version)
-
-````markdown
 # HTB - Devel
 
 ## Machine Information
