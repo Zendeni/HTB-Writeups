@@ -1,5 +1,3 @@
----
-
 # Hack The Box – Lazy
 
 # 1. Enumeration
