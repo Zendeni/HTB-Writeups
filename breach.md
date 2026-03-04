@@ -1,5 +1,3 @@
----
-
 # Breach — HackTheBox Writeup
 
 ## Enumeration
