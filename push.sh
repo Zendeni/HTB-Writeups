@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Simple Git push helper for HTB writeups
-
 if [ -z "$1" ]; then
     echo "Usage: ./push.sh \"commit message\""
     exit 1
