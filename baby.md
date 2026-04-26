@@ -171,8 +171,6 @@ expose %cdrive% E:
 '@
 ```
 
-### Fix Script Encoding (Important)
-
 When transferring or creating the file, ensure correct formatting:
 
 ```bash
@@ -242,8 +240,6 @@ baby\administrator
 ```
 
 ---
-
-## Root
 
 ```powershell
 cd C:\Users\Administrator\Desktop
