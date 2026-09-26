@@ -14,5 +14,3 @@ Each Markdown file is named for its machine or challenge. Browse the repository'
 ## Reading the notes
 
 These are records of individual lab sessions. Target addresses, hostnames, and credentials may change between instances; adapt commands to the machine you are working on.
-
-> **Spoilers:** The writeups describe complete attack paths and flag locations.
