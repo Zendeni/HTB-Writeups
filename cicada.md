@@ -158,13 +158,3 @@ type "C:\Users\Administrator\Desktop\root.txt"
 ```
 
 The conversation recorded the Administrator and PsExec shells, but did not include the output of these final flag commands. No flag values are included here.
-
-## Key distinctions
-
-- Anonymous SMB and an explicit Guest login produced different visibility.
-- A readable share list did not imply read access to every share; David gained access to DEV that Guest lacked.
-- An LDAP success proved Michael's password, while his WinRM check still failed.
-- `nxc smb --users` retrieved an AD description through RPC; it did not discover an SMB document.
-- The script exposed Emily's credential but did not grant her backup privileges.
-- Emily copied protected hives; offline extraction recovered the Administrator hash. Her account did not become Administrator.
-- `CICADA\Administrator` on the domain controller was already domain administrative access. `NT AUTHORITY\SYSTEM` is a separate local service identity.
