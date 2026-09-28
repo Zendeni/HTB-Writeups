@@ -128,5 +128,3 @@ The expected result is a new command prompt running as `NT AUTHORITY\SYSTEM`. Co
 whoami
 type C:\Users\Administrator\Desktop\root.txt
 ```
-
-The official walkthrough also places the user flag in `C:\`. No flag contents are included here.
