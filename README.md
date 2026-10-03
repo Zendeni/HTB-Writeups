@@ -1,6 +1,6 @@
 # Hack The Box Writeups
 
-Walkthroughs and working notes from machines and challenges I completed on Hack The Box. I record the path from reconnaissance to initial access and privilege escalation, including the commands I used and why each finding mattered.
+Walkthroughs and working notes from machines, challenges, and Pro Labs I completed on Hack The Box. I record the path from reconnaissance to initial access and privilege escalation, including the commands I used and why each finding mattered.
 
 ## What you'll find
 
@@ -9,7 +9,11 @@ Walkthroughs and working notes from machines and challenges I completed on Hack 
 - Linux footholds, permission mistakes, and local privilege escalation.
 - Supporting scripts where they help reproduce a technique.
 
-Each Markdown file is named for its machine or challenge. Browse the repository's file list or search for a name or technique to find a writeup.
+Machine and challenge write-ups live at the repository root. Pro Lab write-ups are in [Pro-Labs](Pro-Labs/README.md). Browse the file list or search for a name or technique.
+
+## Pro Labs
+
+- [RPG Mini Pro Lab](Pro-Labs/RPG.md) — six flags, from Artifactory to Shinra.
 
 ## Reading the notes
 
