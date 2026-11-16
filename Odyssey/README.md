@@ -1093,16 +1093,3 @@ Read the result through the existing WinRM access:
 ./scripts/domain-deploy.sh winrm 172.16.0.10 -x \
   'cmd.exe /c type C:\ProgramData\AegisStream\logs\root-candidate.txt'
 ```
-
-```text
-[ROOT FLAG OMITTED]
-```
-
-## Reproduction notes
-
-- Keep the Chisel reverse server and client running until all SQL and AD operations are complete. Port 8000 only serves the binary; it is not the SOCKS tunnel.
-- A JSONPath response with HTTP 500 and command output in `.detail` is expected for the error-based payload.
-- Commands using `-o responses/...` save their bodies to disk. Inspect the file or add curl's `-w` option when a visible status line is useful.
-- Stop Responder before starting `impacket-smbserver`; both bind TCP/445.
-- Old invitations, WebAuthn credentials, cookies, diagnostic tokens, and Kerberos caches may stop working after a box reset. Repeat the preceding discovery step instead of reusing stale output.
-- The source bundle contains helpers and payloads, but not generated executables, downloaded target DLLs, registry hives, recovered keys, or flags.
