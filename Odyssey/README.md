@@ -54,9 +54,9 @@ The existing web enumeration identified Node.js Express over HTTP. The applicati
 printf '10.129.104.203 aegis.korvia.htb\n' >> /etc/hosts
 ```
 
-Its public assets showed resident-key WebAuthn login and an MDS compatibility ticker, which drew attention to the MDS API.
+The unauthenticated JavaScript exposed a usernameless WebAuthn flow and an MDS compatibility ticker, drawing attention to the MDS API:
 
-```
+```bash
 curl -sS http://aegis.korvia.htb:3000/js/main.js |
   grep -nE 'compatibility ticker|aegis-mds/search'
 
@@ -69,7 +69,7 @@ curl -sS \
   http://aegis.korvia.htb:3000/api/v1/auth/webauthn/auth/begin |
   jq '{allowCredentials, userVerification}'
 
-Expected relevant output:
+Condensed output:
 
 FIDO authenticator compatibility ticker
 /api/v1/aegis-mds/search?q=&limit=8
