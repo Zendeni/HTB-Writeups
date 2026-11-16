@@ -1,4 +1,3 @@
-````markdown
 # Hack The Box - Bounty
 
 ## Summary

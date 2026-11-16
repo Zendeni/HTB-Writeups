@@ -8,7 +8,7 @@ Downloaded target assemblies, generated executables, cookies, password responses
 
 ```bash
 git clone https://github.com/Zendeni/HTB-Writeups.git
-cd HTB-Writeups/Odyssey
+cd HTB-Writeups/Machines/HackTheBox/Odyssey
 ```
 
 ## Python environment

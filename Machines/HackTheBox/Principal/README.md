@@ -1,11 +1,10 @@
-````markdown
 # Hack The Box - Principal
 
 ## Summary
 
 Principal is a medium-difficulty Linux machine focused on misplaced cryptographic trust. The initial compromise abused an authentication bypass in `pac4j-jwt/6.0.3`, where an unsigned `PlainJWT` could be wrapped inside a valid encrypted JWE envelope. Because the server validated the encrypted envelope but failed to validate the identity claims inside the inner JWT, an administrator token could be forged.
 
-After gaining administrator access to the internal dashboard, a deployment-related SSH password was recovered and password spraying identified the valid SSH user `svc-deploy`. Privilege escalation then abused a misconfigured SSH Certificate Authority setup. The `svc-deploy` user belonged to the `deployers` group and could read the SSH CA private key. Since the server trusted the CA public key without restricting valid principals, a new SSH certificate was forged for the `root` principal, allowing root login via SSH certificate authentication. :contentReference[oaicite:0]{index=0}
+After gaining administrator access to the internal dashboard, a deployment-related SSH password was recovered and password spraying identified the valid SSH user `svc-deploy`. Privilege escalation then abused a misconfigured SSH Certificate Authority setup. The `svc-deploy` user belonged to the `deployers` group and could read the SSH CA private key. Since the server trusted the CA public key without restricting valid principals, a new SSH certificate was forged for the `root` principal, allowing root login via SSH certificate authentication.
 
 ---
 
