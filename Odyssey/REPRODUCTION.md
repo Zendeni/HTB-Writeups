@@ -43,6 +43,14 @@ command -v responder hashcat bloodyAD nxc evil-winrm
 command -v mcs openssl ilspycmd
 ```
 
+ILSpyCmd is commonly installed as a .NET global tool, whose directory is not always in root's `PATH`. Version `8.2.0.7535` works with the .NET 6 SDK used during this assessment:
+
+```bash
+export PATH="$PATH:/root/.dotnet/tools"
+command -v ilspycmd || dotnet tool install --global ilspycmd --version 8.2.0.7535
+ilspycmd --version
+```
+
 Kali's `/usr/bin/impacket-*` launchers call `python3` through `PATH`. An active virtual environment can therefore make them use `.venv/bin/python`, which does not contain Kali's system Impacket package. The included launcher avoids that conflict by explicitly using `/usr/bin/python3` on Kali:
 
 ```bash

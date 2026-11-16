@@ -13,6 +13,7 @@ artifacts/*.cookies
 artifacts/aegisstream/*.key
 artifacts/aegisstream/*.bin
 artifacts/aegisstream/*.dll
+artifacts/aegisstream/*.enc
 __pycache__/
 *.pyc
 .venv/
