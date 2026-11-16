@@ -1,0 +1,17 @@
+responses/*
+!responses/.gitkeep
+scans/*
+!scans/.gitkeep
+smb-share/*
+!smb-share/.gitkeep
+tools/*
+!tools/.gitkeep
+artifacts/*.exe
+artifacts/*.dll
+artifacts/*.enc
+artifacts/*.cookies
+artifacts/aegisstream/*.key
+artifacts/aegisstream/*.bin
+artifacts/aegisstream/*.dll
+__pycache__/
+*.pyc

