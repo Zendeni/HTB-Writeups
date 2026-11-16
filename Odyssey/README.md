@@ -54,7 +54,7 @@ The existing web enumeration identified Node.js Express over HTTP. The applicati
 printf '10.129.104.203 aegis.korvia.htb\n' >> /etc/hosts
 ```
 
-The unauthenticated JavaScript exposed a usernameless WebAuthn flow and an MDS compatibility ticker, drawing attention to the MDS API:
+The unauthenticated JavaScript exposed a username-less WebAuthn flow and an MDS compatibility ticker, drawing attention to the MDS API:
 
 ```bash
 curl -sS http://aegis.korvia.htb:3000/js/main.js |
@@ -70,7 +70,7 @@ curl -sS \
   jq '{allowCredentials, userVerification}'
 ```
 Condensed output:
-
+```
 FIDO authenticator compatibility ticker
 /api/v1/aegis-mds/search?q=&limit=8
 
@@ -83,7 +83,8 @@ FIDO authenticator compatibility ticker
   "allowCredentials": [],
   "userVerification": "preferred"
 }
-
+```
+The empty allowCredentials list is consistent with username-less authentication using discoverable credentials. The exact registration policy, residentKey: "required", was confirmed later from the recovered server-side WebAuthn handler.
 
 ### Confirmed aggregation injection
 
