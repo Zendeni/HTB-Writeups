@@ -22,6 +22,20 @@ The database host's machine account can write `msDS-KeyCredentialLink` on `svc-a
 
 ## Reproduction setup
 
+Clone the repository and enter the machine directory before running any of the commands below:
+
+```bash
+git clone https://github.com/Zendeni/HTB-Writeups.git
+cd HTB-Writeups/Odyssey
+```
+
+If the repository is already present, update it and return to the same directory instead:
+
+```bash
+git -C HTB-Writeups pull --ff-only
+cd HTB-Writeups/Odyssey
+```
+
 The recorded instance used these addresses:
 
 | Context | Address |
@@ -983,16 +997,16 @@ download 'C:\Program Files\Aegis Stream Collector\AegisStreamSvc.dll' 'artifacts
 download 'C:\Program Files\Aegis Stream Collector\YamlDotNet.dll' 'artifacts/aegisstream/YamlDotNet.dll'
 ```
 
-Decompile the downloaded assemblies locally:
+Decompile the downloaded assemblies locally. `TERM=xterm` is scoped to ILSpyCmd because some newer terminal entries, including certain `xterm-kitty` definitions, cannot be parsed by the .NET 6 console library used by this pinned ILSpyCmd release:
 
 ```bash
 export PATH="$PATH:/root/.dotnet/tools"
 command -v ilspycmd
 
-ilspycmd -p -o /tmp/odyssey-ilspy/common \
+TERM=xterm ilspycmd -p -o /tmp/odyssey-ilspy/common \
   artifacts/aegisstream/AegisStream.Common.dll
 
-ilspycmd -p -o /tmp/odyssey-ilspy/svc \
+TERM=xterm ilspycmd -p -o /tmp/odyssey-ilspy/svc \
   artifacts/aegisstream/AegisStreamSvc.dll
 ```
 

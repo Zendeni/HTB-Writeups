@@ -4,6 +4,13 @@ Run every local command from this `Odyssey` directory. The repository contains t
 
 Downloaded target assemblies, generated executables, cookies, password responses, registry hives, recovered keys, Kerberos caches, and flags are intentionally not bundled.
 
+## Clone the repository
+
+```bash
+git clone https://github.com/Zendeni/HTB-Writeups.git
+cd HTB-Writeups/Odyssey
+```
+
 ## Python environment
 
 Kali marks its system Python as externally managed under PEP 668. Use a virtual environment instead of `pip --break-system-packages`:
@@ -48,8 +55,10 @@ ILSpyCmd is commonly installed as a .NET global tool, whose directory is not alw
 ```bash
 export PATH="$PATH:/root/.dotnet/tools"
 command -v ilspycmd || dotnet tool install --global ilspycmd --version 8.2.0.7535
-ilspycmd --version
+TERM=xterm ilspycmd --version
 ```
+
+Use `TERM=xterm` for the later decompilation commands as well. This limits the workaround to ILSpyCmd and avoids `.NET 6` failures such as `The terminfo database is invalid` when the interactive shell advertises a newer or incompatible terminal definition.
 
 Kali's `/usr/bin/impacket-*` launchers call `python3` through `PATH`. An active virtual environment can therefore make them use `.venv/bin/python`, which does not contain Kali's system Impacket package. The included launcher avoids that conflict by explicitly using `/usr/bin/python3` on Kali:
 
