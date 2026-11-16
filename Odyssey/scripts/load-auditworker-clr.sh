@@ -4,6 +4,10 @@ set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 
 assembly="$odyssey_root/artifacts/AuditWorkerSql.dll"
+[[ -s "$assembly" ]] || {
+  printf 'missing assembly: %s\nrun scripts/build-token-helper.sh first\n' "$assembly" >&2
+  exit 1
+}
 assembly_hex=$(xxd -p "$assembly" | tr -d '\n')
 assembly_sha=$(sha512sum "$assembly" | awk '{print $1}')
 

@@ -26,11 +26,11 @@ sed -i \
   "$build_dir/ArgsParse.cs"
 
 mapfile -d '' sources < <(find "$build_dir" -type f -name '*.cs' -print0)
-mcs -platform:anycpu -optimize+ -target:exe \
+TERM=dumb mcs -platform:anycpu -optimize+ -target:exe \
   -r:System.Data.dll -r:System.Xml.dll \
   -out:"$odyssey_root/artifacts/AuditWorker.exe" "${sources[@]}"
 
-mcs -platform:anycpu -optimize+ -target:library \
+TERM=dumb mcs -platform:anycpu -optimize+ -target:library \
   -r:System.Data.dll -r:System.Xml.dll \
   -out:"$odyssey_root/artifacts/AuditWorkerSql.dll" \
   "${sources[@]}" "$odyssey_root/artifacts/SqlEntry.cs"

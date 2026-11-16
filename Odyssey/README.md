@@ -695,11 +695,13 @@ artifacts/AuditWorker.exe
 artifacts/AuditWorkerSql.dll
 ```
 
+The script runs `mcs` with `TERM=dumb`. This avoids Mono 6's `File must be smaller than 4K` failure when a modern terminal uses a large terminfo entry.
+
 Build and register the assembly:
 
 ```bash
-./scripts/build-token-helper.sh
-./scripts/load-auditworker-clr.sh
+./scripts/build-token-helper.sh &&
+  ./scripts/load-auditworker-clr.sh
 ```
 
 The loader enables CLR, registers the DLL's SHA-512 hash as trusted, creates an `UNSAFE` assembly, and exposes `dbo.audit_token_exec`. The assembly runs inside SQL Server and inherits the service token's `SeImpersonatePrivilege`.
@@ -970,7 +972,7 @@ The same service loads its operator credential by DPAPI-unprotecting `operator.w
 Compile the included named-pipe client locally:
 
 ```bash
-mcs -optimize+ \
+TERM=dumb mcs -optimize+ \
   -out:artifacts/AegisStreamClient.exe \
   artifacts/AegisStreamClient.cs
 ```
@@ -1067,7 +1069,7 @@ The final transition reuses the pinned token helper built during the SQL stage. 
 Build the runner and encrypt the already-generated helper with the matching key and IV embedded in `StreamRunner.cs`:
 
 ```bash
-mcs -optimize+ \
+TERM=dumb mcs -optimize+ \
   -out:artifacts/StreamRunner.exe \
   artifacts/StreamRunner.cs
 

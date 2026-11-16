@@ -94,6 +94,7 @@ export DEPLOY_NT_HASH='...'
 ```
 
 `build-token-helper.sh` pins GodPotato to commit `59f66583474fb0297b7447551460e1072de324c0` before compiling its executable and SQL CLR forms.
+It also runs Mono's compiler with `TERM=dumb` to avoid failures on terminfo entries larger than Mono 6's 4 KB parser limit.
 
 ## Fresh-instance warning
 
