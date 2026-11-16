@@ -12,3 +12,7 @@ Walkthroughs and working notes from machines, challenges, and Pro Labs I complet
 ## Reading the notes
 
 These are records of individual lab sessions. Target addresses, hostnames, and credentials may change between instances; adapt commands to the machine you are working on.
+
+## Machine writeups
+
+- [Odyssey](Odyssey/README.md) — Windows, Insane
