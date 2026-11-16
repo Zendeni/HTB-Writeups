@@ -41,6 +41,16 @@ The complete chain also uses:
 - BloodyAD, NetExec, Evil-WinRM, and Kerberos `klist`;
 - Mono's `mcs`, OpenSSL, and ILSpyCmd.
 
+BloodyAD was tested at version `2.5.4` from `pipx`. Kali commonly exposes `pipx` applications under `/root/.local/bin`, which is not present in every root shell:
+
+```bash
+apt update
+apt install -y pipx
+export PATH="$PATH:/root/.local/bin:/root/.dotnet/tools"
+command -v bloodyAD || pipx install 'bloodyAD==2.5.4'
+command -v bloodyAD
+```
+
 Tool packaging varies by Kali release. Confirm the command names used by the helpers before starting:
 
 ```bash
