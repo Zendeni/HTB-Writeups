@@ -3,6 +3,8 @@
 **Lab:** Hack The Box RPG (Advanced)  
 **Result:** 6/6 flags
 
+RPG is one of the Mini Pro Labs explicitly classified as retired content in section 8.3(d) of the current [Hack The Box Acceptable Use Policy](https://www.hackthebox.com/hubfs/Legal/AUP.pdf?hsLang=en), because an official writeup is available on the platform.
+
 Roundsoft exposed Artifactory and Ignis, a Linux host running Rocket.Chat. The Artifactory recovery account let me reset the admin password. From its admin interface, a repository import pulled files from an internal development share. Those files exposed a Rocket.Chat token and an SSH key for Ignis.
 
 Ignis provided a route into the internal network. On Lux, I hijacked an active PuTTY session to get root on Ignis, then used Ruby's keyring to obtain workstation credentials. WMI took me to Gelus; LastPass, WinSCP, and a writable proxy configuration led to more domain credentials. Finally, Jops's rights on Shinra enabled resource-based constrained delegation and a SYSTEM shell. The last flag was EFS encrypted, so it had to be read as the account holding the decryption key.
