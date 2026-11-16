@@ -68,7 +68,7 @@ curl -sS \
   -d '{}' \
   http://aegis.korvia.htb:3000/api/v1/auth/webauthn/auth/begin |
   jq '{allowCredentials, userVerification}'
-
+```
 Condensed output:
 
 FIDO authenticator compatibility ticker
@@ -83,7 +83,6 @@ FIDO authenticator compatibility ticker
   "allowCredentials": [],
   "userVerification": "preferred"
 }
-```
 
 
 ### Confirmed aggregation injection
