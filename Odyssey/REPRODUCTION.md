@@ -43,6 +43,14 @@ command -v responder hashcat bloodyAD nxc evil-winrm
 command -v mcs openssl ilspycmd
 ```
 
+Kali's `/usr/bin/impacket-*` launchers call `python3` through `PATH`. An active virtual environment can therefore make them use `.venv/bin/python`, which does not contain Kali's system Impacket package. The included launcher avoids that conflict by explicitly using `/usr/bin/python3` on Kali:
+
+```bash
+./scripts/impacket-example.sh mssqlclient -h
+./scripts/impacket-example.sh smbserver -h
+./scripts/impacket-example.sh secretsdump -h
+```
+
 ## Network values
 
 Set the current public target and derive the VPN address from `tun0`:

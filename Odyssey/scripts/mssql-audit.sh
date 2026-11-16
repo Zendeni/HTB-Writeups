@@ -31,5 +31,5 @@ if [[ -f "$source_body" ]]; then
 fi
 
 : "${db_user:?}" "${db_pass:?}" "${db_host:?}" "${db_name:?}" "${db_port:?}"
-exec proxychains4 -q impacket-mssqlclient \
+exec proxychains4 -q "$script_dir/impacket-example.sh" mssqlclient \
   -db "$db_name" -port "$db_port" "$db_user:$db_pass@$db_host" "$@"
