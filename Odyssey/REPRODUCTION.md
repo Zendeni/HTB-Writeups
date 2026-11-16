@@ -65,10 +65,10 @@ ILSpyCmd is commonly installed as a .NET global tool, whose directory is not alw
 ```bash
 export PATH="$PATH:/root/.dotnet/tools"
 command -v ilspycmd || dotnet tool install --global ilspycmd --version 8.2.0.7535
-TERM=xterm ilspycmd --version
+TERM=dumb ilspycmd --version
 ```
 
-Use `TERM=xterm` for the later decompilation commands as well. This limits the workaround to ILSpyCmd and avoids `.NET 6` failures such as `The terminfo database is invalid` when the interactive shell advertises a newer or incompatible terminal definition.
+Use `TERM=dumb` for the later decompilation commands as well. Kali's current `xterm` entry uses a newer extended terminfo representation that this .NET 6 console parser can reject with `The terminfo database is invalid`. The small `dumb` entry works in an interactive PTY and only disables terminal formatting for the scoped command.
 
 Kali's `/usr/bin/impacket-*` launchers call `python3` through `PATH`. An active virtual environment can therefore make them use `.venv/bin/python`, which does not contain Kali's system Impacket package. The included launcher avoids that conflict by explicitly using `/usr/bin/python3` on Kali:
 

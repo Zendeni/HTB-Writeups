@@ -1014,16 +1014,16 @@ download 'C:\Program Files\Aegis Stream Collector\AegisStreamSvc.dll' 'artifacts
 download 'C:\Program Files\Aegis Stream Collector\YamlDotNet.dll' 'artifacts/aegisstream/YamlDotNet.dll'
 ```
 
-Decompile the downloaded assemblies locally. `TERM=xterm` is scoped to ILSpyCmd because some newer terminal entries, including certain `xterm-kitty` definitions, cannot be parsed by the .NET 6 console library used by this pinned ILSpyCmd release:
+Decompile the downloaded assemblies locally. `TERM=dumb` is scoped to ILSpyCmd because the .NET 6 console library used by this pinned release cannot parse Kali's current, extended `xterm` terminfo entry. This only disables terminal formatting for these commands; it does not affect the decompiled output:
 
 ```bash
 export PATH="$PATH:/root/.dotnet/tools"
 command -v ilspycmd
 
-TERM=xterm ilspycmd -p -o /tmp/odyssey-ilspy/common \
+TERM=dumb ilspycmd -p -o /tmp/odyssey-ilspy/common \
   artifacts/aegisstream/AegisStream.Common.dll
 
-TERM=xterm ilspycmd -p -o /tmp/odyssey-ilspy/svc \
+TERM=dumb ilspycmd -p -o /tmp/odyssey-ilspy/svc \
   artifacts/aegisstream/AegisStreamSvc.dll
 ```
 
