@@ -743,7 +743,20 @@ user.txt
 
 SYSTEM can save the protected `SYSTEM`, `SECURITY`, and `SAM` registry hives. The `SYSTEM` hive supplies the boot key; the `SECURITY` hive contains LSA secrets, including the domain-joined machine's credential material.
 
-Stop Responder before starting the SMB server because both need TCP/445. Then start an authenticated temporary share from the repository root:
+Responder from the NetNTLMv2 capture stage must be stopped before continuing because both Responder and the Impacket SMB server bind TCP/445. Press `Ctrl+C` in the Responder terminal. If that terminal is no longer available, identify and stop only the Responder process:
+
+```bash
+pgrep -a -f '[R]esponder.py'
+pkill -f '[R]esponder.py'
+```
+
+Verify that TCP/445 has no remaining listener:
+
+```bash
+ss -ltnp '( sport = :445 )'
+```
+
+Then start the authenticated temporary share from the repository root:
 
 ```bash
 ./scripts/impacket-example.sh smbserver -smb2support \
