@@ -56,6 +56,36 @@ printf '10.129.104.203 aegis.korvia.htb\n' >> /etc/hosts
 
 Its public assets showed resident-key WebAuthn login and an MDS compatibility ticker, which drew attention to the MDS API.
 
+```
+curl -sS http://aegis.korvia.htb:3000/js/main.js |
+  grep -nE 'compatibility ticker|aegis-mds/search'
+
+curl -sS http://aegis.korvia.htb:3000/js/webauthn.js |
+  grep -nE '/api/v1/auth/webauthn/(register|auth)/(begin|finish)'
+
+curl -sS \
+  -H 'Content-Type: application/json' \
+  -d '{}' \
+  http://aegis.korvia.htb:3000/api/v1/auth/webauthn/auth/begin |
+  jq '{allowCredentials, userVerification}'
+
+Expected relevant output:
+
+FIDO authenticator compatibility ticker
+/api/v1/aegis-mds/search?q=&limit=8
+
+/api/v1/auth/webauthn/register/begin
+/api/v1/auth/webauthn/register/finish
+/api/v1/auth/webauthn/auth/begin
+/api/v1/auth/webauthn/auth/finish
+
+{
+  "allowCredentials": [],
+  "userVerification": "preferred"
+}
+```
+
+
 ### Confirmed aggregation injection
 
 The MDS search API accepts a JSON aggregation pipeline from the `pipeline` query parameter. I compared an empty pipeline with a match that should return rows, a match that should return none, and a one-row limit. The changing row counts showed that MongoDB was executing the supplied stages. The filter rejected a top-level `$lookup`, but accepted that same operation inside an allowed `$facet`.
