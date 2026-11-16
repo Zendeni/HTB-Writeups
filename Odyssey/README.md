@@ -1014,17 +1014,30 @@ download 'C:\Program Files\Aegis Stream Collector\AegisStreamSvc.dll' 'artifacts
 download 'C:\Program Files\Aegis Stream Collector\YamlDotNet.dll' 'artifacts/aegisstream/YamlDotNet.dll'
 ```
 
-Decompile the downloaded assemblies locally. `TERM=dumb` is scoped to ILSpyCmd because the .NET 6 console library used by this pinned release cannot parse Kali's current, extended `xterm` terminfo entry. This only disables terminal formatting for these commands; it does not affect the decompiled output:
+Decompile the downloaded assemblies locally. `TERM=dumb` is scoped to ILSpyCmd because the .NET 6 console library used by this pinned release cannot parse Kali's current, extended `xterm` terminfo entry. Do not substitute `TERM=xterm`; it raises `The terminfo database is invalid` in an interactive terminal. `--disable-updatecheck` suppresses the non-fatal newer-version notice and does not affect decompilation:
 
 ```bash
 export PATH="$PATH:/root/.dotnet/tools"
 command -v ilspycmd
 
-TERM=dumb ilspycmd -p -o /tmp/odyssey-ilspy/common \
+TERM=dumb ilspycmd --disable-updatecheck \
+  -p -o /tmp/odyssey-ilspy/common \
   artifacts/aegisstream/AegisStream.Common.dll
 
-TERM=dumb ilspycmd -p -o /tmp/odyssey-ilspy/svc \
+TERM=dumb ilspycmd --disable-updatecheck \
+  -p -o /tmp/odyssey-ilspy/svc \
   artifacts/aegisstream/AegisStreamSvc.dll
+
+test -s /tmp/odyssey-ilspy/common/AegisStream.Common/HmacUtil.cs
+test -s /tmp/odyssey-ilspy/svc/AegisStreamSvc/StreamService.cs
+printf 'Decompilation complete: %s files\n' \
+  "$(find /tmp/odyssey-ilspy -type f | wc -l)"
+```
+
+Expected confirmation for these two assemblies:
+
+```text
+Decompilation complete: 17 files
 ```
 
 ### 10.2 Crossing from viewer to operator
