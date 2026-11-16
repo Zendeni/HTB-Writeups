@@ -3,9 +3,13 @@
 | Machine | Companion material |
 | --- | --- |
 | [Arctic](Arctic/README.md) | — |
+| [Baby](Baby/README.md) | — |
 | [Bank](Bank/README.md) | — |
+| [Barrier](Barrier/README.md) | — |
 | [Beep](Beep/README.md) | — |
 | [Bounty](Bounty/README.md) | — |
+| [Breach](Breach/README.md) | — |
+| [Bruno](Bruno/README.md) | — |
 | [Cicada](Cicada/README.md) | — |
 | [Devel](Devel/README.md) | — |
 | [DevHub](DevHub/README.md) | — |
@@ -22,6 +26,8 @@
 | [Popcorn](Popcorn/README.md) | — |
 | [Principal](Principal/README.md) | — |
 | [Reactor](Reactor/README.md) | — |
+| [Retro](Retro/README.md) | — |
+| [RetroTwo](RetroTwo/README.md) | — |
 | [Sauna](Sauna/README.md) | — |
 | [Sense](Sense/README.md) | — |
 | [SmartHIRE](SmartHIRE/README.md) | — |
@@ -29,5 +35,6 @@
 | [Store](Store/README.md) | — |
 | [Support](Support/README.md) | — |
 | [UpDown](UpDown/README.md) | — |
+| [Zero](Zero/README.md) | — |
 
 Check the machine's current HTB status before publishing or sharing its solution.

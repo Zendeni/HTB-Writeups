@@ -14,7 +14,6 @@ cd HTB-Writeups
 | Collection | Contents |
 | --- | --- |
 | [Hack The Box machines](Machines/HackTheBox/README.md) | Standalone HTB machine writeups, including the complete Odyssey reproduction bundle |
-| [VulnLab machines](Machines/VulnLab/README.md) | Active Directory and standalone VulnLab machine notes |
 | [Challenges](Challenges/README.md) | Web and application challenges |
 | [Pro Labs](Pro-Labs/README.md) | Multi-host lab walkthroughs |
 
@@ -22,9 +21,7 @@ cd HTB-Writeups
 
 ```text
 HTB-Writeups/
-├── Machines/
-│   ├── HackTheBox/<Machine>/README.md
-│   └── VulnLab/<Machine>/README.md
+├── Machines/HackTheBox/<Machine>/README.md
 ├── Challenges/<Challenge>/README.md
 └── Pro-Labs/<Lab>/README.md
 ```
