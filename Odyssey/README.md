@@ -765,6 +765,8 @@ Then start the authenticated temporary share from the repository root:
   share "$PWD/smb-share"
 ```
 
+The SMB server intentionally remains in the foreground while it listens on TCP/445. Leave this terminal open and run the hive-export query from a second terminal. Stop the server with `Ctrl+C` only after all three hive files have arrived in `smb-share/`.
+
 Create a per-run copy of the export query with the current VPN address:
 
 ```bash
