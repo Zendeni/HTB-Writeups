@@ -651,7 +651,7 @@ hashcat -m 5600 -a 0 -O \
   /usr/share/wordlists/rockyou.txt
 ```
 
-`--outfile-format 2` writes only the recovered password. In the recorded run:
+`--outfile-format 2` writes only the recovered password:
 
 ```text
 cml958782
