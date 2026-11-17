@@ -31,15 +31,6 @@ git clone https://github.com/Zendeni/HTB-Writeups.git
 cd HTB-Writeups/Machines/HackTheBox/Odyssey
 ```
 
-If the repository is already present, update it and return to the same directory instead:
-
-```bash
-git -C HTB-Writeups pull --ff-only
-cd HTB-Writeups/Machines/HackTheBox/Odyssey
-```
-
-The recorded instance used these addresses:
-
 | Context | Address |
 | --- | --- |
 | Public target | `10.129.104.203` |
