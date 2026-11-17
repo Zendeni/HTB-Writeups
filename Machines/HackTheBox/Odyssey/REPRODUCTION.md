@@ -9,6 +9,7 @@ Downloaded target assemblies, generated executables, cookies, password responses
 ```bash
 git clone https://github.com/Zendeni/HTB-Writeups.git
 cd HTB-Writeups/Machines/HackTheBox/Odyssey
+git clean -fdX -e .venv/
 ```
 
 ## Python environment
@@ -83,9 +84,13 @@ Kali's `/usr/bin/impacket-*` launchers call `python3` through `PATH`. An active 
 Set the current public target and derive the VPN address from `tun0`:
 
 ```bash
-export TARGET_IP=10.129.104.203
+printf 'Current target IP: '
+read -r TARGET_IP
+export TARGET_IP
 export ATTACKER_IP=$(ip -4 -o addr show tun0 | awk '{split($4,a,"/"); print a[1]; exit}')
+test -n "$TARGET_IP"
 test -n "$ATTACKER_IP"
+ip route get "$TARGET_IP" | grep -q 'dev tun0'
 ```
 
 The recorded run used `10.10.15.156`. Two source SQL files retain that address as a template. The writeup creates per-run copies under `responses/` with the current `ATTACKER_IP`; do not execute those templates unchanged after a VPN reconnect.
@@ -94,6 +99,7 @@ The internal tools require a working SOCKS listener at `127.0.0.1:1080`. The rev
 
 ```bash
 ss -ltnp '( sport = :8000 or sport = :8001 or sport = :1080 )'
+ss -ltn '( sport = :1080 )' | grep -q '127.0.0.1:1080'
 ```
 
 The ProxyChains configuration must end with:

