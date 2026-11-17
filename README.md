@@ -1,4 +1,4 @@
-# Security Lab Writeups
+# HTB Lab Writeups
 
 Technical walkthroughs and working notes from machines, challenges, and lab environments. Each target has its own directory so its writeup, helper scripts, payloads, and reproduction notes stay together.
 
@@ -33,6 +33,4 @@ Companion files live beside the writeup that uses them. For example:
 
 Target addresses, session tokens, and other runtime values can change after a reset. Start in the target's directory, read its setup section, and create generated output only in the paths documented there.
 
-## Publication note
 
-Platform rules can change. Confirm that content is officially eligible for public writeups before publishing or sharing it; an expired machine is not necessarily retired.
