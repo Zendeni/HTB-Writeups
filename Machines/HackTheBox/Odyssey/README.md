@@ -1,6 +1,6 @@
 # HTB Odyssey
 
-**Hack The Box · Windows · Insane · Retired** · [Machine page](https://www.hackthebox.com/machines/odyssey)
+**Hack The Box · Windows · Insane ·** · [Machine page](https://www.hackthebox.com/machines/odyssey)
 
 ## Summary
 
